@@ -3,297 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學校訓導及輔導管理系統 (最終完整版)</title>
+    <title>校本諮詢平台</title>
     
-    <!-- 引入 Chart.js 函式庫 -->
+    <!-- 引入圖表和匯出工具 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <style>
         /* --- 全局樣式 --- */
         :root {
-            --primary-color: #3498db;
-            --primary-hover-color: #2980b9;
-            --danger-color: #c0392b;
-            --danger-hover-color: #a93226;
-            --success-color: #27ae60;
-            --success-hover-color: #229954;
-            --secondary-color: #95a5a6;
-            --secondary-hover-color: #7f8c8d;
-            --light-bg-color: #f4f7f9;
-            --white-color: #fff;
-            --dark-text-color: #2c3e50;
-            --light-text-color: #333;
-            --border-color: #ccc;
+            --primary-color: #3498db; --primary-hover-color: #2980b9;
+            --sidebar-bg: #2c3e50; --sidebar-hover: #34495e;
+            --danger-color: #c0392b; --success-color: #27ae60; --bg-color: #f4f7f9;
         }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-color); }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--light-bg-color);
-            color: var(--light-text-color);
-            margin: 0;
-            padding: 20px;
-        }
+        /* ================= 左側選單樣式 ================= */
+        .sidebar { width: 200px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.1); z-index: 10; transition: width 0.3s ease; overflow: hidden; white-space: nowrap; }
+        .sidebar.collapsed { width: 0; }
+        .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .menu-item { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: all 0.3s ease; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover { background-color: var(--sidebar-hover); }
+        .menu-item.active { background-color: var(--sidebar-hover); border-left: 5px solid var(--primary-color); color: var(--primary-color); font-weight: bold; }
 
-        /* --- 容器樣式 --- */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: var(--white-color);
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        /* --- 標題樣式 --- */
-        h1, h2, h3 {
-            color: var(--dark-text-color);
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-
-        /* --- 統計儀表板樣式 --- */
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-box {
-            background-color: var(--white-color);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-        }
-        .stat-box h3 {
-            margin-top: 0;
-            border-bottom: 1px solid #eee;
-        }
-        .chart-wrapper {
-            height: 250px;
-            margin-bottom: 20px;
-        }
-        .stats-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .stats-table td {
-            padding: 8px 4px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .stats-table tr:last-child td {
-            border-bottom: none;
-        }
-        .stats-table td:last-child {
-            text-align: right;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
-
-        /* --- 篩選器樣式 --- */
-        .filter-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-        }
-        .filter-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .filter-group label { font-weight: 600; }
-        .filter-group select {
-            padding: 8px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
+        /* ================= 右側主要內容區 ================= */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .top-header { background-color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); z-index: 5; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .toggle-btn { background: none; border: none; font-size: 1.5rem; color: #2c3e50; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: color 0.3s; }
+        .toggle-btn:hover { color: var(--primary-color); }
+        .top-header h2 { margin: 0; color: #2c3e50; font-size: 1.4rem; }
         
-        /* --- 表單樣式 --- */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .form-group { display: flex; flex-direction: column; }
-        .form-group label { margin-bottom: 5px; font-weight: 600; }
-        .form-group input, .form-group select {
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        .form-group input.invalid { border-color: var(--danger-color); background-color: #fdeaea; }
-        .form-actions {
-            grid-column: 1 / -1;
-            text-align: right;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .school-name { font-weight: bold; color: #333; font-size: 1.1rem; }
+        .logout-btn { color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.95rem; border: 1px solid var(--primary-color); padding: 4px 12px; border-radius: 4px; transition: 0.3s; }
+        .logout-btn:hover { background-color: var(--primary-color); color: white; }
 
-        /* --- 按鈕通用樣式 --- */
-        .button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            color: white;
-        }
-        .submit-button { background-color: var(--primary-color); }
-        .submit-button:hover { background-color: var(--primary-hover-color); }
-        .cancel-button { background-color: var(--secondary-color); }
-        .cancel-button:hover { background-color: var(--secondary-hover-color); }
-        .edit-btn { background-color: var(--success-color); }
-        .edit-btn:hover { background-color: var(--success-hover-color); }
-        .delete-btn { background-color: var(--danger-color); }
-        .delete-btn:hover { background-color: var(--danger-hover-color); }
+        .main-content { padding: 30px; overflow-y: auto; flex: 1; }
+
+        /* --- 內部組件樣式 --- */
+        .section-title { color: #2c3e50; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 20px; margin-top: 0; }
+        .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
+        .stat-box h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 1.1rem; }
         
-        /* --- 表格樣式 --- */
+        /* 圖表高度 */
+        .chart-wrapper { height: 260px; margin-bottom: 10px; }
+        /* 隱藏下方的數字統計表格 */
+        .stats-table { display: none; }
+        
+        .form-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); margin-bottom: 30px;}
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .form-group { display: flex; flex-direction: column; transition: all 0.3s; }
+        .form-group label { margin-bottom: 5px; font-weight: 600; color: #2c3e50;}
+        .form-group input, .form-group select, .form-group textarea { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .issue-select-group { display: flex; gap: 10px; }
+        .issue-select-group select { flex: 1; }
+        .form-actions { grid-column: 1 / -1; text-align: right; margin-top: 20px; }
+        
+        .table-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
+        
+        /* =========== 更新篩選器佈局 =========== */
+        .filter-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 6px; }
+        .filter-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .filter-left { display: flex; gap: 20px; flex-wrap: wrap; align-items: center;}
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group select, .filter-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
         .table-wrapper { overflow-x: auto; }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .data-table th, .data-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-            white-space: nowrap;
-        }
-        .data-table th { background-color: #f2f2f2; font-weight: 700; }
-        .data-table td .button { padding: 5px 10px; margin-right: 5px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; word-wrap: break-word; vertical-align: top; transition: display 0.3s; }
+        .data-table th { background-color: #f2f2f2; }
+        
+        .data-table th:nth-child(8), .data-table td:nth-child(8),
+        .data-table th:nth-child(9), .data-table td:nth-child(9) { min-width: 150px; max-width: 250px; }
+        .data-table th:nth-child(10), .data-table td:nth-child(10) { min-width: 200px; max-width: 300px; }
+
+        .button { padding: 8px 16px; border: none; border-radius: 4px; font-size: 0.9rem; color: white; cursor: pointer; transition: 0.3s;}
+        .submit-button { background-color: var(--primary-color); font-size: 1rem; padding: 10px 20px;}
+        .cancel-button { background-color: #95a5a6; font-size: 1rem; padding: 10px 20px;}
+        .edit-btn { background-color: var(--success-color); margin-right: 5px; margin-bottom: 5px;}
+        .delete-btn { background-color: var(--danger-color); }
+        .other-input { margin-top: 8px; background-color: #fffbc8; border-color: #f1c40f !important; }
+        
+        /* 匯出 Excel 按鈕 */
+        .export-btn { background-color: #107c41; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 10px 20px;}
+        .export-btn:hover { background-color: #0c5e31; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1 id="main-title" style="border-bottom: none;">學校訓導及輔導管理系統</h1>
-            <a href="login.html" id="logout-link" style="text-decoration: none; color: #3498db; font-weight: 600; white-space: nowrap;">登出</a>
-        </div>
-        
-        <div class="stats-container">
-            <div class="stat-box">
-                <h3>按負責同工統計</h3>
-                <div class="chart-wrapper">
-                    <canvas id="caseworkerChart"></canvas>
-                </div>
-                <table class="stats-table">
-                    <thead><tr><th>負責同工</th><th>個案數量</th></tr></thead>
-                    <tbody id="caseworker-stats-body"></tbody>
-                </table>
-            </div>
-            <div class="stat-box">
-                <h3>按班級統計</h3>
-                <div class="chart-wrapper">
-                    <canvas id="classChart"></canvas>
-                </div>
-                <table class="stats-table">
-                    <thead><tr><th>班級</th><th>個案數量</th></tr></thead>
-                    <tbody id="class-stats-body"></tbody>
-                </table>
-            </div>
-        </div>
-        
-        <form id="case-form">
-            <h2 id="form-title">新增個案</h2>
-            <div class="form-grid">
-                <input type="hidden" id="case-id" name="case-id">
-                <div class="form-group"><label for="student-name">學生姓名</label><input type="text" id="student-name" name="student-name" required></div>
-                <div class="form-group"><label for="file-number">檔案編號</label><input type="text" id="file-number" name="file-number"></div>
-                <div class="form-group"><label for="open-date">開案日期</label><input type="date" id="open-date" name="open-date" required></div>
-                <div class="form-group"><label for="gender">性別</label><select id="gender" name="gender"><option value="male">男</option><option value="female">女</option></select></div>
-                <div class="form-group"><label for="class-current">現時班級</label><input type="text" id="class-current" name="class-current"></div>
-                <div class="form-group"><label for="dob">學生出生日期</label><input type="date" id="dob" name="dob"></div>
-                <div class="form-group"><label for="caseworker">負責個案同工</label><input type="text" id="caseworker" name="caseworker" required></div>
-                <div class="form-group"><label for="primary-issue">主要問題</label><input type="text" id="primary-issue" name="primary-issue"></div>
-                <div class="form-group"><label for="secondary-issue">次要問題</label><input type="text" id="secondary-issue" name="secondary-issue"></div>
-                <div class="form-actions">
-                    <button type="submit" class="button submit-button" id="submit-btn">提交新個案</button>
-                    <button type="button" class="button cancel-button" id="cancel-btn" style="display: none;">取消編輯</button>
-                </div>
-            </div>
-        </form>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">系統選單</div>
+        <div class="menu-item active" data-context="student">👨‍🎓 學生個案</div>
+        <div class="menu-item" data-context="teacher">👩‍🏫 老師諮詢</div>
+        <div class="menu-item" data-context="parent">👪 家長諮詢</div>
+    </div>
 
-        <h2>個案總表</h2>
-        <div class="filter-container">
-            <div class="filter-group"><label for="class-filter">按班級篩選：</label><select id="class-filter"><option value="">-- 所有班級 --</option></select></div>
-            <div class="filter-group"><label for="caseworker-filter">按同工篩選：</label><select id="caseworker-filter"><option value="">-- 所有同工 --</option></select></div>
+    <div class="main-wrapper">
+        <div class="top-header">
+            <div class="header-left">
+                <button class="toggle-btn" id="sidebar-toggle" title="隱藏/顯示選單">☰</button>
+                <h2 id="main-title">校本諮詢平台</h2>
+            </div>
+            <div class="header-right">
+                <span class="school-name">香海正覺蓮社佛教正覺蓮社學校</span>
+                <a href="login.html" class="logout-btn">登出</a>
+            </div>
         </div>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr><th>學生姓名</th><th>檔案編號</th><th>開案日期</th><th>性別</th><th>現時班級</th><th>負責個案同工</th><th>主要問題</th><th>次要問題</th><th>操作</th></tr>
-                </thead>
-                <tbody id="case-table-body">
-                    <tr data-case-id="1" data-dob="2014-05-10" data-secondary-issue="動力不足"><td>陳小明</td><td>CS-001</td><td>2026-04-20</td><td>男</td><td>P.6A</td><td>楊姑娘</td><td>學業壓力</td><td>動力不足</td><td><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td></tr>
-                    <tr data-case-id="2" data-dob="2016-08-15" data-secondary-issue="社交退縮"><td>李靜兒</td><td>CS-002</td><td>2026-04-22</td><td>女</td><td>P.4C</td><td>梁姑娘</td><td>情緒困擾</td><td>社交退縮</td><td><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td></tr>
-                </tbody>
-            </table>
+
+        <div class="main-content">
+            <!-- 統計區塊 -->
+            <div class="stats-container">
+                <div class="stat-box">
+                    <h3>按同工及月份統計</h3>
+                    <div class="chart-wrapper"><canvas id="caseworkerChart"></canvas></div>
+                    <table class="stats-table"><tbody id="caseworker-stats-body"></tbody></table>
+                </div>
+                <div class="stat-box">
+                    <h3 id="class-chart-title">按班級統計</h3>
+                    <div class="chart-wrapper"><canvas id="classChart"></canvas></div>
+                    <table class="stats-table"><tbody id="class-stats-body"></tbody></table>
+                </div>
+                <div class="stat-box">
+                    <h3>按主要問題統計 (主類別)</h3>
+                    <div class="chart-wrapper"><canvas id="issueChart"></canvas></div>
+                    <table class="stats-table"><tbody id="issue-stats-body"></tbody></table>
+                </div>
+            </div>
+
+            <!-- 總表區塊 -->
+            <div class="table-container" style="margin-bottom: 30px;">
+                <h2 class="section-title" id="table-title">學生個案總表</h2>
+                
+                <!-- 篩選器與匯出 -->
+                <div class="filter-container">
+                    <div class="filter-row">
+                        <div class="filter-left">
+                            <div class="filter-group"><label id="filter-class-label">班級篩選：</label><select id="class-filter"><option value="">-- 全部 --</option></select></div>
+                            <div class="filter-group"><label>同工篩選：</label><select id="caseworker-filter"><option value="">-- 所有同工 --</option></select></div>
+                        </div>
+                    </div>
+                    <div class="filter-row" style="border-top: 1px dashed #ccc; padding-top: 15px;">
+                        <div class="filter-left">
+                            <div class="filter-group">
+                                <label style="color: #107c41;">📅 報表範圍：</label>
+                                <select id="date-range-preset">
+                                    <option value="all">-- 全部日期 --</option>
+                                    <option value="last2months">最近兩個月</option>
+                                    <option value="thisSchoolYear">本學年 (9月起)</option>
+                                    <option value="thisYear">本年度 (1月起)</option>
+                                    <option value="custom">自訂日期...</option>
+                                </select>
+                            </div>
+                            <div class="filter-group" id="custom-date-group" style="display: none;">
+                                <input type="date" id="date-start"> <span>至</span> <input type="date" id="date-end">
+                            </div>
+                        </div>
+                        <div>
+                            <button id="export-excel-btn" class="button export-btn">📥 匯出 Excel 報表</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="data-table" id="main-data-table">
+                        <thead>
+                            <tr>
+                                <th id="th-name">姓名</th>
+                                <th class="col-student-id">學生編號</th>
+                                <th>檔案編號</th>
+                                <th>日期</th>
+                                <th>性別</th>
+                                <th id="th-class">班級</th>
+                                <th>負責同工</th>
+                                <th>主要問題</th>
+                                <th>次要問題</th>
+                                <th>諮詢內容</th>
+                                <th class="no-export">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="case-table-body">
+                            <tr data-case-id="1" data-type="student" data-dob="2014-05-10" data-pri-cat="學業" data-pri-det="LL3: 學習興趣/動機低弱" data-pri-other="" data-sec-cat="無" data-sec-det="" data-sec-other="">
+                                <td>陳小明</td><td class="col-student-id">S24001</td><td>CS-001</td><td class="col-date">2026-04-20</td><td>男</td><td>P.6A</td><td>楊姑娘</td><td>學業 - LL3: 學習興趣/動機低弱</td><td>無</td><td>近期對功課缺乏興趣。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
+                            </tr>
+                            <tr data-case-id="2" data-type="student" data-dob="2016-08-15" data-pri-cat="情緒/心理" data-pri-det="EE3: 情緒問題，例如：未能適當地調節情緒、情緒鬱悶、感覺得自己沒有價值" data-pri-other="" data-sec-cat="社交/發展" data-sec-det="SS1: 社交技巧不足" data-sec-other="">
+                                <td>李靜兒</td><td class="col-student-id">S24055</td><td>CS-002</td><td class="col-date">2026-04-22</td><td>女</td><td>P.4C</td><td>梁姑娘</td><td>情緒/心理 - EE3: 情緒問題...</td><td>社交/發展 - SS1: 社交技巧不足</td><td>常在課堂哭泣，不敢與同學互動。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
+                            </tr>
+                            <tr data-case-id="3" data-type="teacher" data-dob="" data-pri-cat="行為" data-pri-det="CC22: 其他（請扼要說明）" data-pri-other="上課時經常未經許可離開座位" data-sec-cat="無" data-sec-det="" data-sec-other="" style="display: none;">
+                                <td>林老師</td><td class="col-student-id"></td><td>T-001</td><td class="col-date">2026-04-25</td><td>女</td><td>P.3</td><td>楊姑娘</td><td>行為 - CC22: 其他 (上課時經常未經許可離開座位)</td><td>無</td><td>班級秩序處理諮詢</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
+                            </tr>
+                            <tr data-case-id="4" data-type="parent" data-dob="" data-pri-cat="家庭/環境" data-pri-det="FF1: 缺乏父母恰當的教導和監管" data-pri-other="" data-sec-cat="無" data-sec-det="" data-sec-other="" style="display: none;">
+                                <td>陳太</td><td class="col-student-id"></td><td>P-001</td><td class="col-date">2026-05-02</td><td>女</td><td>P.2A</td><td>梁姑娘</td><td>家庭/環境 - FF1: 缺乏父母恰當的教導和監管</td><td>無</td><td>家長反映雙職家庭無暇照顧。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 表單區塊 -->
+            <div class="form-container">
+                <h2 class="section-title" id="form-title">新增記錄</h2>
+                <form id="case-form">
+                    <input type="hidden" id="case-id" name="case-id">
+                    <div class="form-grid">
+                        <div class="form-group"><label id="label-name">姓名</label><input type="text" id="student-name" required></div>
+                        <div class="form-group" id="group-student-id"><label id="label-student-id">學生編號</label><input type="text" id="student-id"></div>
+                        <div class="form-group"><label>檔案編號</label><input type="text" id="file-number"></div>
+                        <div class="form-group"><label>日期</label><input type="date" id="open-date" required></div>
+                        <div class="form-group"><label>性別</label><select id="gender"><option value="male">男</option><option value="female">女</option></select></div>
+                        <div class="form-group"><label id="label-class">現時班級</label><input type="text" id="class-current"></div>
+                        <div class="form-group" id="dob-group"><label>出生日期</label><input type="date" id="dob"></div>
+                        
+                        <div class="form-group">
+                            <label>負責同工</label>
+                            <select id="caseworker" required>
+                                <option value="">-- 請選擇同工 --</option>
+                                <option value="楊姑娘">楊姑娘</option>
+                                <option value="梁姑娘">梁姑娘</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>主要問題</label>
+                            <div class="issue-select-group">
+                                <select id="primary-issue-category" required><option value="">-- 主類別 --</option></select>
+                                <select id="primary-issue-detail" required disabled style="flex: 2;"><option value="">-- 請先選擇主類別 --</option></select>
+                            </div>
+                            <input type="text" id="primary-issue-other" class="other-input" placeholder="請填寫具體的「其他」問題說明..." style="display: none;">
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>次要問題</label>
+                            <div class="issue-select-group">
+                                <select id="secondary-issue-category"><option value="無">無</option></select>
+                                <select id="secondary-issue-detail" disabled style="flex: 2;"><option value="">-- 細項 --</option></select>
+                            </div>
+                            <input type="text" id="secondary-issue-other" class="other-input" placeholder="請填寫具體的「其他」問題說明..." style="display: none;">
+                        </div>
+
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label>諮詢內容</label>
+                            <textarea id="consultation-content" rows="3" placeholder="請輸入詳細的面談或諮詢記錄..."></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="button submit-button" id="submit-btn">提交資料</button>
+                            <button type="button" class="button cancel-button" id="cancel-btn" style="display: none;">取消編輯</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- DOM 元素 ---
+            
+            // --- 左側選單收合 ---
+            const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggleBtn && sidebar) {
+                sidebarToggleBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('collapsed');
+                    setTimeout(() => {
+                        if (caseworkerChartInstance) caseworkerChartInstance.resize();
+                        if (classChartInstance) classChartInstance.resize();
+                        if (issueChartInstance) issueChartInstance.resize();
+                    }, 300);
+                });
+            }
+
+            const issueData = {
+                "學業": ["LL1: 經診斷為有學習困難，例如：智障、有限智能、有特殊學習困難（包括讀寫障礙、發展性協調障礙）或語言障礙（包括語言理解和表達問題）", "LL2: 懷疑為有學習困難（例如：如上列）", "LL3: 學習興趣/動機低弱", "LL4: 學習技巧不足", "LL5: 未能適應本地教育制度，例如：新移民", "LL6: 其他（請扼要說明）"],
+                "行為": ["CC1: 校服儀容不符合校規", "CC2: 攜帶違反校規的物品回校", "CC3: 不誠實的行為", "CC4: 經常遲到", "CC5: 經常逃學", "CC6: 校內騷擾他人行為", "CC7: 對師長使用暴力", "CC8: 與同學打架", "CC9: 欺凌同學（暴力）", "CC10: 欺凌同學（語言或間接）", "CC11: 網絡欺凌", "CC12: 惡意破壞校舍", "CC13: 放學後經常在外流連", "CC14: 吸煙", "CC15: 賭博", "CC16: 吸食毒品", "CC17: 色情刊物/資訊", "CC18: 沉迷互聯網", "CC19: 非禮/性侵犯", "CC20: 偷竊", "CC21: 童黨/黑社會", "CC22: 其他（請扼要說明）"],
+                "家庭/環境": ["FF1: 缺乏父母恰當的教導和監管", "FF2: 已經證實的虐兒個案", "FF3: 家庭關係的問題", "FF4: 未能適應家庭危機/突變", "FF5: 家庭暴力", "FF6: 其他（請扼要說明）"],  
+                "情緒/心理": ["EE1: 畏縮/退避的行為", "EE2: 焦慮問題", "EE3: 情緒問題", "EE4: 身心徵狀的困擾", "EE5: 自毁行為", "EE6: 發展障礙 (經診斷)", "EE7: 懷疑有發展障礙", "EE8: 精神病 (經診斷)", "EE9: 懷疑有精神病", "EE10: 其他（請扼要說明）"],
+                "健康/生理": ["HH1: 健康欠佳或經常患病", "HH2: 身體障礙", "HH3: 其他（請扼要說明）"],  
+                "社交/發展": ["SS1: 社交技巧不足", "SS2: 與性有關的問題", "SS3: 其他（請扼要說明）"],
+                "其他": ["發展性障礙", "特殊教育需要", "其他（請扼要說明）"]
+            };
+
             const form = document.getElementById('case-form');
-            const formTitle = document.getElementById('form-title');
             const tableBody = document.getElementById('case-table-body');
             const submitBtn = document.getElementById('submit-btn');
             const cancelBtn = document.getElementById('cancel-btn');
             const caseIdInput = document.getElementById('case-id');
             const classFilter = document.getElementById('class-filter');
             const caseworkerFilter = document.getElementById('caseworker-filter');
-            const caseworkerStatsBody = document.getElementById('caseworker-stats-body');
-            const classStatsBody = document.getElementById('class-stats-body');
+            const formTitle = document.getElementById('form-title');
 
-            // --- Chart.js 實例變數 ---
+            const dateRangePreset = document.getElementById('date-range-preset');
+            const customDateGroup = document.getElementById('custom-date-group');
+            const dateStart = document.getElementById('date-start');
+            const dateEnd = document.getElementById('date-end');
+
+            const priCatSelect = document.getElementById('primary-issue-category');
+            const priDetSelect = document.getElementById('primary-issue-detail');
+            const priOtherInput = document.getElementById('primary-issue-other');
+            const secCatSelect = document.getElementById('secondary-issue-category');
+            const secDetSelect = document.getElementById('secondary-issue-detail');
+            const secOtherInput = document.getElementById('secondary-issue-other');
+
             let caseworkerChartInstance = null;
             let classChartInstance = null;
+            let issueChartInstance = null;
+            let currentContext = 'student'; 
+            
+            const contextConfig = {
+                'student': { label: '學生', nameField: '學生姓名', idField: '學生編號', classField: '現時班級', showDOB: true, showStudentId: true },
+                'teacher': { label: '老師', nameField: '老師姓名', idField: '', classField: '任教班級/科目', showDOB: false, showStudentId: false },
+                'parent':  { label: '家長', nameField: '家長姓名', idField: '', classField: '子弟班級', showDOB: false, showStudentId: false }
+            };
 
-            // --- 事件監聽 ---
+            function initIssueDropdowns() {
+                const categories = Object.keys(issueData);
+                categories.forEach(cat => {
+                    priCatSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+                    secCatSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+                });
+                priCatSelect.addEventListener('change', () => populateDetails(priCatSelect, priDetSelect, priOtherInput));
+                secCatSelect.addEventListener('change', () => populateDetails(secCatSelect, secDetSelect, secOtherInput));
+                priDetSelect.addEventListener('change', () => toggleOtherInput(priDetSelect, priOtherInput));
+                secDetSelect.addEventListener('change', () => toggleOtherInput(secDetSelect, secOtherInput));
+            }
+
+            function populateDetails(categorySelect, detailSelect, otherInput) {
+                const selectedCat = categorySelect.value;
+                detailSelect.innerHTML = '<option value="">-- 請選擇細項 --</option>';
+                if (selectedCat && selectedCat !== '無') {
+                    detailSelect.disabled = false;
+                    issueData[selectedCat].forEach(item => {
+                        detailSelect.innerHTML += `<option value="${item}">${item}</option>`;
+                    });
+                } else {
+                    detailSelect.disabled = true;
+                }
+                otherInput.style.display = 'none';
+                otherInput.required = false;
+                otherInput.value = '';
+            }
+
+            function toggleOtherInput(detailSelect, otherInput) {
+                if (detailSelect.value && detailSelect.value.includes('其他')) {
+                    otherInput.style.display = 'block';
+                    otherInput.required = true;
+                } else {
+                    otherInput.style.display = 'none';
+                    otherInput.required = false;
+                    otherInput.value = '';
+                }
+            }
+
+            initIssueDropdowns();
+
+            // =========== 動態切換邏輯 ===========
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    menuItems.forEach(mi => mi.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    currentContext = this.getAttribute('data-context');
+                    const config = contextConfig[currentContext];
+                    
+                    document.getElementById('table-title').textContent = `${config.label}個案 / 諮詢總表`;
+                    formTitle.textContent = `新增${config.label}記錄`;
+                    document.getElementById('label-name').textContent = config.nameField;
+                    document.getElementById('th-name').textContent = config.nameField;
+                    document.getElementById('label-student-id').textContent = config.idField;
+                    document.getElementById('th-student-id').textContent = config.idField;
+                    document.getElementById('label-class').textContent = config.classField;
+                    document.getElementById('th-class').textContent = config.classField;
+                    document.getElementById('th-stat-class').textContent = config.classField;
+                    document.getElementById('class-chart-title').textContent = `按${config.classField}統計`;
+                    document.getElementById('filter-class-label').textContent = `${config.classField}篩選：`;
+                    
+                    document.getElementById('dob-group').style.display = config.showDOB ? 'flex' : 'none';
+                    
+                    const displayStyle = config.showStudentId ? '' : 'none';
+                    document.getElementById('group-student-id').style.display = displayStyle;
+                    document.querySelectorAll('.col-student-id').forEach(el => el.style.display = displayStyle);
+
+                    classFilter.value = '';
+                    caseworkerFilter.value = '';
+                    dateRangePreset.value = 'all'; 
+                    customDateGroup.style.display = 'none';
+                    dateStart.value = '';
+                    dateEnd.value = '';
+
+                    resetForm();
+                    updateAll(); 
+                });
+            });
+
+            // =========== 日期篩選與匯出 Excel ===========
+            dateRangePreset.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customDateGroup.style.display = 'flex';
+                } else {
+                    customDateGroup.style.display = 'none';
+                    const today = new Date();
+                    let start = '';
+                    let end = today.toISOString().slice(0,10);
+                    
+                    if (this.value === 'last2months') {
+                        const twoMonthsAgo = new Date();
+                        twoMonthsAgo.setMonth(today.getMonth() - 2);
+                        start = twoMonthsAgo.toISOString().slice(0,10);
+                    } else if (this.value === 'thisSchoolYear') {
+                        const currentMonth = today.getMonth(); 
+                        const startYear = currentMonth >= 8 ? today.getFullYear() : today.getFullYear() - 1;
+                        start = `${startYear}-09-01`;
+                    } else if (this.value === 'thisYear') {
+                        start = `${today.getFullYear()}-01-01`;
+                    }
+                    
+                    dateStart.value = start;
+                    dateEnd.value = end;
+                }
+                updateAll(); 
+            });
+            
+            dateStart.addEventListener('change', updateAll);
+            dateEnd.addEventListener('change', updateAll);
+
+            const exportBtn = document.getElementById('export-excel-btn');
+            exportBtn.addEventListener('click', function() {
+                const originalTable = document.getElementById('main-data-table');
+                const clonedTable = originalTable.cloneNode(true);
+                
+                const rows = clonedTable.querySelectorAll('tr');
+                rows.forEach(row => {
+                    if (row.style.display === 'none') {
+                        row.parentNode.removeChild(row);
+                    } else {
+                        const cells = row.querySelectorAll('.no-export');
+                        cells.forEach(cell => cell.parentNode.removeChild(cell));
+                        if(currentContext !== 'student') {
+                            const studentIdCells = row.querySelectorAll('.col-student-id');
+                            studentIdCells.forEach(cell => cell.parentNode.removeChild(cell));
+                        }
+                    }
+                });
+
+                const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "個案列表"});
+                const contextName = contextConfig[currentContext].label;
+                let reportType = "總表";
+                if(dateRangePreset.value === 'last2months') reportType = "雙月報表";
+                else if(dateRangePreset.value === 'thisSchoolYear') reportType = "本學年報表";
+                else if(dateRangePreset.value === 'thisYear') reportType = "年度報表";
+                else if(dateRangePreset.value === 'custom') reportType = `${dateStart.value}至${dateEnd.value}`;
+
+                const todayStr = new Date().toISOString().slice(0,10);
+                XLSX.writeFile(wb, `${contextName}記錄_${reportType}_${todayStr}.xlsx`);
+            });
+
+            // --- 表單與表格邏輯 ---
             form.addEventListener('submit', handleFormSubmit);
             tableBody.addEventListener('click', handleTableClick);
             cancelBtn.addEventListener('click', resetForm);
             classFilter.addEventListener('change', updateAll);
             caseworkerFilter.addEventListener('change', updateAll);
 
-            // --- 核心函數 ---
             function handleFormSubmit(event) {
                 event.preventDefault();
-                if (!validateForm()) {
-                    alert('請填寫所有必填欄位！');
-                    return;
-                }
+                if (priCatSelect.value && !priDetSelect.value) { alert('請選擇「主要問題」的細項！'); return; }
+                if (secCatSelect.value !== '無' && !secDetSelect.value) { alert('請選擇「次要問題」的細項！'); return; }
+
                 const caseId = caseIdInput.value;
-                if (caseId) { // 編輯模式
+                if (caseId) {
                     const rowToUpdate = tableBody.querySelector(`tr[data-case-id="${caseId}"]`);
                     if (rowToUpdate) updateRowFromForm(rowToUpdate);
-                } else { // 新增模式
+                    alert("更新成功！");
+                } else {
                     const newRow = createRowFromForm();
                     tableBody.appendChild(newRow);
+                    alert("新增成功！");
                 }
                 resetForm();
                 updateAll();
+                document.querySelector('.table-container').scrollIntoView({ behavior: 'smooth' });
             }
 
             function handleTableClick(event) {
                 const target = event.target;
                 const row = target.closest('tr');
                 if (!row) return;
+                
                 if (target.classList.contains('delete-btn')) {
-                    const studentName = row.cells[0].textContent;
-                    if (confirm(`您確定要刪除「${studentName}」的個案記錄嗎？`)) {
+                    if (confirm(`確定要刪除「${row.cells[0].textContent}」的資料嗎？`)) {
                         row.remove();
                         updateAll();
                     }
@@ -304,41 +505,68 @@
             }
             
             function updateAll() {
-                applyFilters();
+                applyFilters(); 
                 updateFilterOptions();
-                updateStatistics();
+                updateStatistics(); 
             }
 
             function updateStatistics() {
                 const rows = Array.from(tableBody.querySelectorAll('tr'));
                 const caseworkerCounts = {};
                 const classCounts = {};
+                const issueCounts = {}; 
 
                 rows.forEach(row => {
                     if (row.style.display !== 'none') {
-                        const className = row.cells[4].textContent;
-                        const caseworkerName = row.cells[5].textContent;
-                        if (caseworkerName) caseworkerCounts[caseworkerName] = (caseworkerCounts[caseworkerName] || 0) + 1;
+                        // 在這個無記錄類別的表格中：日期(index 3), 班級(index 5), 同工(index 6), 問題(dataset)
+                        const dateStr = row.cells[3].textContent;
+                        const className = row.cells[5].textContent;     
+                        const caseworkerName = row.cells[6].textContent; 
+                        const primaryCat = row.dataset.priCat; 
+
+                        let yearMonth = '未知月份';
+                        if (dateStr && dateStr.includes('-')) yearMonth = dateStr.substring(0, 7); 
+
+                        if (caseworkerName) {
+                            const key = yearMonth ? `${caseworkerName} (${yearMonth})` : caseworkerName;
+                            caseworkerCounts[key] = (caseworkerCounts[key] || 0) + 1;
+                        }
+
                         if (className) classCounts[className] = (classCounts[className] || 0) + 1;
+                        if (primaryCat && primaryCat !== '無' && primaryCat !== 'undefined') { 
+                            issueCounts[primaryCat] = (issueCounts[primaryCat] || 0) + 1;
+                        }
                     }
                 });
 
-                // 渲染同工統計
-                caseworkerChartInstance = drawOrUpdateChart(caseworkerChartInstance, 'caseworkerChart', Object.keys(caseworkerCounts), Object.values(caseworkerCounts), 'rgba(52, 152, 219, 0.7)');
-                caseworkerStatsBody.innerHTML = '';
-                for (const name in caseworkerCounts) {
-                    caseworkerStatsBody.innerHTML += `<tr><td>${name}</td><td>${caseworkerCounts[name]}</td></tr>`;
+                const sortedMonths = Array.from(new Set(Object.keys(caseworkerCounts).map(k => k.split(' (')[1]?.replace(')','') || k))).sort();
+                const allCw = Array.from(new Set(Object.keys(caseworkerCounts).map(k => k.split(' (')[0])));
+                const colors = ['rgba(52, 152, 219, 0.8)', 'rgba(231, 76, 60, 0.8)', 'rgba(241, 196, 15, 0.8)', 'rgba(155, 89, 182, 0.8)'];
+
+                const datasets = allCw.map((cw, index) => {
+                    const dataPoints = sortedMonths.map(month => caseworkerCounts[`${cw} (${month})`] || 0);
+                    return { label: cw, data: dataPoints, backgroundColor: colors[index % colors.length], borderWidth: 1 };
+                });
+
+                const cwCtx = document.getElementById('caseworkerChart').getContext('2d');
+                if (caseworkerChartInstance) {
+                    caseworkerChartInstance.data.labels = sortedMonths;
+                    caseworkerChartInstance.data.datasets = datasets;
+                    caseworkerChartInstance.update();
+                } else {
+                    caseworkerChartInstance = new Chart(cwCtx, { type: 'bar', data: { labels: sortedMonths, datasets: datasets }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false } });
                 }
 
-                // 渲染班級統計
-                classChartInstance = drawOrUpdateChart(classChartInstance, 'classChart', Object.keys(classCounts), Object.values(classCounts), 'rgba(46, 204, 113, 0.7)');
-                classStatsBody.innerHTML = '';
-                for (const name in classCounts) {
-                    classStatsBody.innerHTML += `<tr><td>${name}</td><td>${classCounts[name]}</td></tr>`;
-                }
+                classChartInstance = drawOrUpdateSingleChart(classChartInstance, 'classChart', Object.keys(classCounts), Object.values(classCounts), 'rgba(46, 204, 113, 0.8)');
+                issueChartInstance = drawOrUpdateSingleChart(issueChartInstance, 'issueChart', Object.keys(issueCounts), Object.values(issueCounts), 'rgba(155, 89, 182, 0.8)');
+                
+                // 保留舊的表格賦值代碼，但是因為 CSS 隱藏了，所以不會顯示也不會出錯
+                document.getElementById('caseworker-stats-body').innerHTML = '';
+                document.getElementById('class-stats-body').innerHTML = '';
+                document.getElementById('issue-stats-body').innerHTML = '';
             }
 
-            function drawOrUpdateChart(instance, canvasId, labels, data, color) {
+            function drawOrUpdateSingleChart(instance, canvasId, labels, data, color) {
                 const ctx = document.getElementById(canvasId).getContext('2d');
                 if (instance) {
                     instance.data.labels = labels;
@@ -347,15 +575,8 @@
                 } else {
                     instance = new Chart(ctx, {
                         type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{ label: '個案數量', data: data, backgroundColor: color, borderWidth: 1 }]
-                        },
-                        options: {
-                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                            responsive: true,
-                            maintainAspectRatio: false
-                        }
+                        data: { labels: labels, datasets: [{ label: '數量', data: data, backgroundColor: color }] },
+                        options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false }
                     });
                 }
                 return instance;
@@ -364,92 +585,154 @@
             function applyFilters() {
                 const classValue = classFilter.value;
                 const caseworkerValue = caseworkerFilter.value;
+                const startDateVal = dateStart.value;
+                const endDateVal = dateEnd.value;
+
                 tableBody.querySelectorAll('tr').forEach(row => {
-                    const classMatch = !classValue || row.cells[4].textContent === classValue;
-                    const caseworkerMatch = !caseworkerValue || row.cells[5].textContent === caseworkerValue;
-                    row.style.display = (classMatch && caseworkerMatch) ? '' : 'none';
+                    const rowType = row.getAttribute('data-type');
+                    const classMatch = !classValue || row.cells[5].textContent === classValue;
+                    const caseworkerMatch = !caseworkerValue || row.cells[6].textContent === caseworkerValue;
+                    const typeMatch = rowType === currentContext;
+                    
+                    let dateMatch = true;
+                    if (dateRangePreset.value !== 'all') {
+                        const rowDate = row.cells[3].textContent; // 這裡的日期是第 4 欄 (index 3)
+                        if (rowDate) {
+                            if (startDateVal && rowDate < startDateVal) dateMatch = false;
+                            if (endDateVal && rowDate > endDateVal) dateMatch = false;
+                        }
+                    }
+                    
+                    row.style.display = (classMatch && caseworkerMatch && typeMatch && dateMatch) ? '' : 'none';
                 });
             }
 
             function updateFilterOptions() {
-                const classes = new Set();
-                const caseworkers = new Set();
-                tableBody.querySelectorAll('tr').forEach(row => {
-                    classes.add(row.cells[4].textContent);
-                    caseworkers.add(row.cells[5].textContent);
+                const classes = new Set(), caseworkers = new Set();
+                tableBody.querySelectorAll('tr').forEach(row => { 
+                    if(row.style.display !== 'none'){
+                        classes.add(row.cells[5].textContent); 
+                        caseworkers.add(row.cells[6].textContent); 
+                    }
                 });
                 
-                const currentClassFilterValue = classFilter.value;
-                classFilter.innerHTML = '<option value="">-- 所有班級 --</option>';
-                classes.forEach(c => { if (c) classFilter.innerHTML += `<option value="${c}">${c}</option>`; });
-                classFilter.value = currentClassFilterValue;
-
-                const currentCaseworkerFilterValue = caseworkerFilter.value;
-                caseworkerFilter.innerHTML = '<option value="">-- 所有同工 --</option>';
-                caseworkers.forEach(cw => { if (cw) caseworkerFilter.innerHTML += `<option value="${cw}">${cw}</option>`; });
-                caseworkerFilter.value = currentCaseworkerFilterValue;
-            }
-
-            function validateForm() {
-                let isValid = true;
-                form.querySelectorAll('input[required]').forEach(input => {
-                    if (!input.value.trim()) { isValid = false; input.classList.add('invalid'); } 
-                    else { input.classList.remove('invalid'); }
-                });
-                return isValid;
+                const updateSelect = (selectEl, optionsSet, defaultText) => {
+                    const currentVal = selectEl.value;
+                    selectEl.innerHTML = `<option value="">${defaultText}</option>` + Array.from(optionsSet).filter(Boolean).map(o => `<option value="${o}">${o}</option>`).join('');
+                    if(Array.from(optionsSet).includes(currentVal)) selectEl.value = currentVal;
+                };
+                updateSelect(classFilter, classes, '-- 全部 --');
+                updateSelect(caseworkerFilter, caseworkers, '-- 所有同工 --');
             }
 
             function createRowFromForm() {
-                const newRow = document.createElement('tr');
-                newRow.setAttribute('data-case-id', Date.now());
-                updateRowFromForm(newRow);
-                return newRow;
+                const row = document.createElement('tr');
+                row.setAttribute('data-case-id', Date.now());
+                row.setAttribute('data-type', currentContext); 
+                updateRowFromForm(row);
+                return row;
             }
             
             function updateRowFromForm(row) {
-                row.setAttribute('data-dob', form.querySelector('#dob').value);
-                row.setAttribute('data-secondary-issue', form.querySelector('#secondary-issue').value);
+                row.setAttribute('data-dob', document.getElementById('dob').value);
+                row.setAttribute('data-pri-cat', priCatSelect.value);
+                row.setAttribute('data-pri-det', priDetSelect.value);
+                row.setAttribute('data-pri-other', priOtherInput.value); 
+                row.setAttribute('data-sec-cat', secCatSelect.value);
+                row.setAttribute('data-sec-det', secDetSelect.value);
+                row.setAttribute('data-sec-other', secOtherInput.value); 
+                
+                const name = document.getElementById('student-name').value;
+                const studentId = currentContext === 'student' ? document.getElementById('student-id').value : ''; 
+                const fileNum = document.getElementById('file-number').value;
+                const date = document.getElementById('open-date').value;
+                const gender = document.getElementById('gender').options[document.getElementById('gender').selectedIndex].text;
+                const currentClass = document.getElementById('class-current').value;
+                const caseworker = document.getElementById('caseworker').value;
+                
+                let priString = priCatSelect.value;
+                if (priDetSelect.value) {
+                    let shortDet = priDetSelect.value.split(':')[0]; 
+                    if(shortDet === priDetSelect.value) shortDet = priDetSelect.value.split('，')[0]; 
+                    priString += ` - ${shortDet}`;
+                    if (priOtherInput.value) priString += ` (${priOtherInput.value})`; 
+                }
+
+                let secString = secCatSelect.value;
+                if (secCatSelect.value !== '無' && secDetSelect.value) {
+                    let shortDet = secDetSelect.value.split(':')[0];
+                    if(shortDet === secDetSelect.value) shortDet = secDetSelect.value.split('，')[0];
+                    secString += ` - ${shortDet}`;
+                    if (secOtherInput.value) secString += ` (${secOtherInput.value})`;
+                }
+
+                const content = document.getElementById('consultation-content').value;
+
                 row.innerHTML = `
-                    <td>${form.querySelector('#student-name').value}</td>
-                    <td>${form.querySelector('#file-number').value}</td>
-                    <td>${form.querySelector('#open-date').value}</td>
-                    <td>${form.querySelector('#gender').options[form.querySelector('#gender').selectedIndex].text}</td>
-                    <td>${form.querySelector('#class-current').value}</td>
-                    <td>${form.querySelector('#caseworker').value}</td>
-                    <td>${form.querySelector('#primary-issue').value}</td>
-                    <td>${form.querySelector('#secondary-issue').value}</td>
-                    <td><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
+                    <td>${name}</td>
+                    <td class="col-student-id">${studentId}</td>
+                    <td>${fileNum}</td>
+                    <td class="col-date">${date}</td> 
+                    <td>${gender}</td>
+                    <td>${currentClass}</td>
+                    <td>${caseworker}</td>
+                    <td>${priString}</td>
+                    <td>${secString}</td>
+                    <td title="${content}">${content}</td>
+                    <td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
                 `;
+                
+                const displayStyle = currentContext === 'student' ? '' : 'none';
+                row.querySelector('.col-student-id').style.display = displayStyle;
             }
 
             function switchToEditMode(row) {
                 caseIdInput.value = row.dataset.caseId;
-                form.querySelector('#student-name').value = row.cells[0].textContent;
-                form.querySelector('#file-number').value = row.cells[1].textContent;
-                form.querySelector('#open-date').value = row.cells[2].textContent;
-                form.querySelector('#class-current').value = row.cells[4].textContent;
-                form.querySelector('#caseworker').value = row.cells[5].textContent;
-                form.querySelector('#primary-issue').value = row.cells[6].textContent;
-                form.querySelector('#dob').value = row.dataset.dob;
-                form.querySelector('#secondary-issue').value = row.dataset.secondaryIssue;
-                form.querySelector('#gender').value = (row.cells[3].textContent === '男') ? 'male' : 'female';
                 
+                document.getElementById('student-name').value = row.cells[0].textContent;
+                document.getElementById('student-id').value = row.cells[1].textContent; 
+                document.getElementById('file-number').value = row.cells[2].textContent;
+                document.getElementById('open-date').value = row.cells[3].textContent;
+                document.getElementById('gender').value = (row.cells[4].textContent === '男') ? 'male' : 'female';
+                document.getElementById('class-current').value = row.cells[5].textContent;
+                document.getElementById('dob').value = row.dataset.dob;
+                document.getElementById('caseworker').value = row.cells[6].textContent;
+                document.getElementById('consultation-content').value = row.cells[9].textContent;
+                
+                priCatSelect.value = row.dataset.priCat || '';
+                populateDetails(priCatSelect, priDetSelect, priOtherInput);
+                priDetSelect.value = row.dataset.priDet || '';
+                priOtherInput.value = row.dataset.priOther || '';
+                toggleOtherInput(priDetSelect, priOtherInput);
+
+                secCatSelect.value = row.dataset.secCat || '無';
+                populateDetails(secCatSelect, secDetSelect, secOtherInput);
+                secDetSelect.value = row.dataset.secDet || '';
+                secOtherInput.value = row.dataset.secOther || '';
+                toggleOtherInput(secDetSelect, secOtherInput); 
+
+                const config = contextConfig[currentContext];
                 formTitle.textContent = `正在編輯：${row.cells[0].textContent}`;
                 submitBtn.textContent = '更新資料';
                 cancelBtn.style.display = 'inline-block';
-                formTitle.scrollIntoView({ behavior: 'smooth' });
+                
+                document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
             }
             
             function resetForm() {
                 form.reset();
                 caseIdInput.value = '';
-                formTitle.textContent = '新增個案';
-                submitBtn.textContent = '提交新個案';
+                
+                populateDetails(priCatSelect, priDetSelect, priOtherInput);
+                populateDetails(secCatSelect, secDetSelect, secOtherInput);
+
+                const config = contextConfig[currentContext];
+                formTitle.textContent = `新增${config.label}記錄`;
+                submitBtn.textContent = '提交資料';
                 cancelBtn.style.display = 'none';
-                form.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
             }
             
-            // --- 初始載入 ---
+            // --- 頁面首次載入時初始化 ---
             updateAll();
         });
     </script>
