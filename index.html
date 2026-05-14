@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>校本諮詢平台</title>
     
-    <!-- 引入圖表和匯出工具 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         /* --- 全局樣式 --- */
@@ -36,8 +35,8 @@
         
         .header-right { display: flex; align-items: center; gap: 15px; }
         .school-name { font-weight: bold; color: #333; font-size: 1.1rem; }
-        .logout-btn { color: var(--primary-color); text-decoration: none; font-weight: 600; font-size: 0.95rem; border: 1px solid var(--primary-color); padding: 4px 12px; border-radius: 4px; transition: 0.3s; }
-        .logout-btn:hover { background-color: var(--primary-color); color: white; }
+        .logout-btn { color: var(--danger-color); text-decoration: none; font-weight: 600; font-size: 0.95rem; border: 1px solid var(--danger-color); padding: 4px 12px; border-radius: 4px; transition: 0.3s; cursor:pointer;}
+        .logout-btn:hover { background-color: var(--danger-color); color: white; }
 
         .main-content { padding: 30px; overflow-y: auto; flex: 1; }
 
@@ -46,11 +45,7 @@
         .stats-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .stat-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
         .stat-box h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px; font-size: 1.1rem; }
-        
-        /* 圖表高度 */
-        .chart-wrapper { height: 260px; margin-bottom: 10px; }
-        /* 隱藏下方的數字統計表格 */
-        .stats-table { display: none; }
+        .chart-wrapper { height: 260px; position: relative; width: 100%; margin-bottom: 10px; } 
         
         .form-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); margin-bottom: 30px;}
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
@@ -64,7 +59,6 @@
         
         .table-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); }
         
-        /* =========== 更新篩選器佈局 =========== */
         .filter-container { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 6px; }
         .filter-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
         .filter-left { display: flex; gap: 20px; flex-wrap: wrap; align-items: center;}
@@ -76,20 +70,19 @@
         .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: left; word-wrap: break-word; vertical-align: top; transition: display 0.3s; }
         .data-table th { background-color: #f2f2f2; }
         
-        .data-table th:nth-child(8), .data-table td:nth-child(8),
-        .data-table th:nth-child(9), .data-table td:nth-child(9) { min-width: 150px; max-width: 250px; }
-        .data-table th:nth-child(10), .data-table td:nth-child(10) { min-width: 200px; max-width: 300px; }
+        .data-table th:nth-child(9), .data-table td:nth-child(9),
+        .data-table th:nth-child(10), .data-table td:nth-child(10) { min-width: 150px; max-width: 250px; }
+        .data-table th:nth-child(11), .data-table td:nth-child(11) { min-width: 200px; max-width: 300px; }
 
         .button { padding: 8px 16px; border: none; border-radius: 4px; font-size: 0.9rem; color: white; cursor: pointer; transition: 0.3s;}
         .submit-button { background-color: var(--primary-color); font-size: 1rem; padding: 10px 20px;}
         .cancel-button { background-color: #95a5a6; font-size: 1rem; padding: 10px 20px;}
         .edit-btn { background-color: var(--success-color); margin-right: 5px; margin-bottom: 5px;}
         .delete-btn { background-color: var(--danger-color); }
-        .other-input { margin-top: 8px; background-color: #fffbc8; border-color: #f1c40f !important; }
-        
-        /* 匯出 Excel 按鈕 */
         .export-btn { background-color: #107c41; font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; padding: 10px 20px;}
         .export-btn:hover { background-color: #0c5e31; }
+        .other-input { margin-top: 8px; background-color: #fffbc8; border-color: #f1c40f !important; }
+        .user-badge { background-color: #ecf0f1; padding: 5px 15px; border-radius: 20px; font-weight: bold; color: #2c3e50; border: 1px solid #bdc3c7;}
     </style>
 </head>
 <body>
@@ -108,28 +101,26 @@
                 <h2 id="main-title">校本諮詢平台</h2>
             </div>
             <div class="header-right">
-                <span class="school-name">香海正覺蓮社佛教正覺蓮社學校</span>
-                <a href="login.html" class="logout-btn">登出</a>
+                <span class="user-badge" id="user-badge-container" style="display:none;">您好，<span id="display-user-name"></span></span>
+                <span class="school-name" style="margin: 0 10px;">香海正覺蓮社佛教正覺蓮社學校</span>
+                <a href="login.html" class="logout-btn" id="logout-action-btn">登出</a>
             </div>
         </div>
 
         <div class="main-content">
-            <!-- 統計區塊 -->
+            <!-- 統計區塊 (圖表) -->
             <div class="stats-container">
                 <div class="stat-box">
                     <h3>按同工及月份統計</h3>
                     <div class="chart-wrapper"><canvas id="caseworkerChart"></canvas></div>
-                    <table class="stats-table"><tbody id="caseworker-stats-body"></tbody></table>
                 </div>
                 <div class="stat-box">
                     <h3 id="class-chart-title">按班級統計</h3>
                     <div class="chart-wrapper"><canvas id="classChart"></canvas></div>
-                    <table class="stats-table"><tbody id="class-stats-body"></tbody></table>
                 </div>
                 <div class="stat-box">
                     <h3>按主要問題統計 (主類別)</h3>
                     <div class="chart-wrapper"><canvas id="issueChart"></canvas></div>
-                    <table class="stats-table"><tbody id="issue-stats-body"></tbody></table>
                 </div>
             </div>
 
@@ -137,12 +128,11 @@
             <div class="table-container" style="margin-bottom: 30px;">
                 <h2 class="section-title" id="table-title">學生個案總表</h2>
                 
-                <!-- 篩選器與匯出 -->
                 <div class="filter-container">
                     <div class="filter-row">
                         <div class="filter-left">
                             <div class="filter-group"><label id="filter-class-label">班級篩選：</label><select id="class-filter"><option value="">-- 全部 --</option></select></div>
-                            <div class="filter-group"><label>同工篩選：</label><select id="caseworker-filter"><option value="">-- 所有同工 --</option></select></div>
+                            <div class="filter-group" id="caseworker-filter-container"><label>同工篩選：</label><select id="caseworker-filter"><option value="">-- 所有同工 --</option></select></div>
                         </div>
                     </div>
                     <div class="filter-row" style="border-top: 1px dashed #ccc; padding-top: 15px;">
@@ -172,7 +162,8 @@
                         <thead>
                             <tr>
                                 <th id="th-name">姓名</th>
-                                <th class="col-student-id">學生編號</th>
+                                <th id="th-student-id" class="col-student-id">學生編號</th>
+                                <th>記錄類別</th>
                                 <th>檔案編號</th>
                                 <th>日期</th>
                                 <th>性別</th>
@@ -185,18 +176,7 @@
                             </tr>
                         </thead>
                         <tbody id="case-table-body">
-                            <tr data-case-id="1" data-type="student" data-dob="2014-05-10" data-pri-cat="學業" data-pri-det="LL3: 學習興趣/動機低弱" data-pri-other="" data-sec-cat="無" data-sec-det="" data-sec-other="">
-                                <td>陳小明</td><td class="col-student-id">S24001</td><td>CS-001</td><td class="col-date">2026-04-20</td><td>男</td><td>P.6A</td><td>楊姑娘</td><td>學業 - LL3: 學習興趣/動機低弱</td><td>無</td><td>近期對功課缺乏興趣。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
-                            </tr>
-                            <tr data-case-id="2" data-type="student" data-dob="2016-08-15" data-pri-cat="情緒/心理" data-pri-det="EE3: 情緒問題，例如：未能適當地調節情緒、情緒鬱悶、感覺得自己沒有價值" data-pri-other="" data-sec-cat="社交/發展" data-sec-det="SS1: 社交技巧不足" data-sec-other="">
-                                <td>李靜兒</td><td class="col-student-id">S24055</td><td>CS-002</td><td class="col-date">2026-04-22</td><td>女</td><td>P.4C</td><td>梁姑娘</td><td>情緒/心理 - EE3: 情緒問題...</td><td>社交/發展 - SS1: 社交技巧不足</td><td>常在課堂哭泣，不敢與同學互動。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
-                            </tr>
-                            <tr data-case-id="3" data-type="teacher" data-dob="" data-pri-cat="行為" data-pri-det="CC22: 其他（請扼要說明）" data-pri-other="上課時經常未經許可離開座位" data-sec-cat="無" data-sec-det="" data-sec-other="" style="display: none;">
-                                <td>林老師</td><td class="col-student-id"></td><td>T-001</td><td class="col-date">2026-04-25</td><td>女</td><td>P.3</td><td>楊姑娘</td><td>行為 - CC22: 其他 (上課時經常未經許可離開座位)</td><td>無</td><td>班級秩序處理諮詢</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
-                            </tr>
-                            <tr data-case-id="4" data-type="parent" data-dob="" data-pri-cat="家庭/環境" data-pri-det="FF1: 缺乏父母恰當的教導和監管" data-pri-other="" data-sec-cat="無" data-sec-det="" data-sec-other="" style="display: none;">
-                                <td>陳太</td><td class="col-student-id"></td><td>P-001</td><td class="col-date">2026-05-02</td><td>女</td><td>P.2A</td><td>梁姑娘</td><td>家庭/環境 - FF1: 缺乏父母恰當的教導和監管</td><td>無</td><td>家長反映雙職家庭無暇照顧。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
-                            </tr>
+                            <!-- 資料載入區 -->
                         </tbody>
                     </table>
                 </div>
@@ -210,7 +190,14 @@
                     <div class="form-grid">
                         <div class="form-group"><label id="label-name">姓名</label><input type="text" id="student-name" required></div>
                         <div class="form-group" id="group-student-id"><label id="label-student-id">學生編號</label><input type="text" id="student-id"></div>
-                        <div class="form-group"><label>檔案編號</label><input type="text" id="file-number"></div>
+                        <div class="form-group">
+                            <label>記錄類別</label>
+                            <select id="record-type" required>
+                                <option value="開檔案">開檔案</option>
+                                <option value="諮詢">諮詢</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>檔案編號</label><input type="text" id="file-number" placeholder="如沒有可留空"></div>
                         <div class="form-group"><label>日期</label><input type="date" id="open-date" required></div>
                         <div class="form-group"><label>性別</label><select id="gender"><option value="male">男</option><option value="female">女</option></select></div>
                         <div class="form-group"><label id="label-class">現時班級</label><input type="text" id="class-current"></div>
@@ -227,27 +214,18 @@
                         
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>主要問題</label>
-                            <div class="issue-select-group">
-                                <select id="primary-issue-category" required><option value="">-- 主類別 --</option></select>
-                                <select id="primary-issue-detail" required disabled style="flex: 2;"><option value="">-- 請先選擇主類別 --</option></select>
-                            </div>
+                            <div class="issue-select-group"><select id="primary-issue-category" required><option value="">-- 主類別 --</option></select><select id="primary-issue-detail" required disabled style="flex: 2;"><option value="">-- 請先選擇主類別 --</option></select></div>
                             <input type="text" id="primary-issue-other" class="other-input" placeholder="請填寫具體的「其他」問題說明..." style="display: none;">
                         </div>
-                        
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>次要問題</label>
-                            <div class="issue-select-group">
-                                <select id="secondary-issue-category"><option value="無">無</option></select>
-                                <select id="secondary-issue-detail" disabled style="flex: 2;"><option value="">-- 細項 --</option></select>
-                            </div>
+                            <div class="issue-select-group"><select id="secondary-issue-category"><option value="無">無</option></select><select id="secondary-issue-detail" disabled style="flex: 2;"><option value="">-- 細項 --</option></select></div>
                             <input type="text" id="secondary-issue-other" class="other-input" placeholder="請填寫具體的「其他」問題說明..." style="display: none;">
                         </div>
-
                         <div class="form-group" style="grid-column: 1 / -1;">
                             <label>諮詢內容</label>
                             <textarea id="consultation-content" rows="3" placeholder="請輸入詳細的面談或諮詢記錄..."></textarea>
                         </div>
-
                         <div class="form-actions">
                             <button type="submit" class="button submit-button" id="submit-btn">提交資料</button>
                             <button type="button" class="button cancel-button" id="cancel-btn" style="display: none;">取消編輯</button>
@@ -262,22 +240,48 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             
-            // --- 左側選單收合 ---
+            // --- 權限邏輯 (安全讀取) ---
+            let currentUser = { role: 'admin', name: '管理員' };
+            try {
+                const sessionStr = sessionStorage.getItem('currentUser');
+                if (sessionStr) {
+                    currentUser = JSON.parse(sessionStr);
+                    document.getElementById('display-user-name').textContent = currentUser.name;
+                    document.getElementById('user-badge-container').style.display = 'inline-block';
+                }
+            } catch(e) {}
+
+            document.getElementById('logout-action-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                sessionStorage.removeItem('currentUser');
+                window.location.href = 'login.html';
+            });
+
+            function enforcePermissions() {
+                const cwSelect = document.getElementById('caseworker');
+                const cwFilterContainer = document.getElementById('caseworker-filter-container');
+                if (currentUser.role === 'caseworker') {
+                    cwSelect.value = currentUser.name;
+                    cwSelect.disabled = true; 
+                    if(cwFilterContainer) cwFilterContainer.style.display = 'none';
+                } else {
+                    cwSelect.disabled = false;
+                    if(cwFilterContainer) cwFilterContainer.style.display = 'flex';
+                }
+            }
+
+            // 側邊欄
             const sidebarToggleBtn = document.getElementById('sidebar-toggle');
             const sidebar = document.getElementById('sidebar');
             if (sidebarToggleBtn && sidebar) {
                 sidebarToggleBtn.addEventListener('click', function() {
                     sidebar.classList.toggle('collapsed');
-                    setTimeout(() => {
-                        if (caseworkerChartInstance) caseworkerChartInstance.resize();
-                        if (classChartInstance) classChartInstance.resize();
-                        if (issueChartInstance) issueChartInstance.resize();
-                    }, 300);
+                    setTimeout(() => updateStatistics(), 300);
                 });
             }
 
             const issueData = {
-                "學業": ["LL1: 經診斷為有學習困難，例如：智障、有限智能、有特殊學習困難（包括讀寫障礙、發展性協調障礙）或語言障礙（包括語言理解和表達問題）", "LL2: 懷疑為有學習困難（例如：如上列）", "LL3: 學習興趣/動機低弱", "LL4: 學習技巧不足", "LL5: 未能適應本地教育制度，例如：新移民", "LL6: 其他（請扼要說明）"],
+                "學業": ["LL1: 經診斷為有學習困難", "LL2: 懷疑為有學習困難", "LL3: 學習興趣/動機低弱", "LL4: 學習技巧不足", "LL5: 未能適應本地教育制度", "LL6: 其他（請扼要說明）"],
                 "行為": ["CC1: 校服儀容不符合校規", "CC2: 攜帶違反校規的物品回校", "CC3: 不誠實的行為", "CC4: 經常遲到", "CC5: 經常逃學", "CC6: 校內騷擾他人行為", "CC7: 對師長使用暴力", "CC8: 與同學打架", "CC9: 欺凌同學（暴力）", "CC10: 欺凌同學（語言或間接）", "CC11: 網絡欺凌", "CC12: 惡意破壞校舍", "CC13: 放學後經常在外流連", "CC14: 吸煙", "CC15: 賭博", "CC16: 吸食毒品", "CC17: 色情刊物/資訊", "CC18: 沉迷互聯網", "CC19: 非禮/性侵犯", "CC20: 偷竊", "CC21: 童黨/黑社會", "CC22: 其他（請扼要說明）"],
                 "家庭/環境": ["FF1: 缺乏父母恰當的教導和監管", "FF2: 已經證實的虐兒個案", "FF3: 家庭關係的問題", "FF4: 未能適應家庭危機/突變", "FF5: 家庭暴力", "FF6: 其他（請扼要說明）"],  
                 "情緒/心理": ["EE1: 畏縮/退避的行為", "EE2: 焦慮問題", "EE3: 情緒問題", "EE4: 身心徵狀的困擾", "EE5: 自毁行為", "EE6: 發展障礙 (經診斷)", "EE7: 懷疑有發展障礙", "EE8: 精神病 (經診斷)", "EE9: 懷疑有精神病", "EE10: 其他（請扼要說明）"],
@@ -293,13 +297,12 @@
             const caseIdInput = document.getElementById('case-id');
             const classFilter = document.getElementById('class-filter');
             const caseworkerFilter = document.getElementById('caseworker-filter');
-            const formTitle = document.getElementById('form-title');
-
+            
             const dateRangePreset = document.getElementById('date-range-preset');
             const customDateGroup = document.getElementById('custom-date-group');
             const dateStart = document.getElementById('date-start');
             const dateEnd = document.getElementById('date-end');
-
+            const formTitle = document.getElementById('form-title');
             const priCatSelect = document.getElementById('primary-issue-category');
             const priDetSelect = document.getElementById('primary-issue-detail');
             const priOtherInput = document.getElementById('primary-issue-other');
@@ -320,14 +323,14 @@
 
             function initIssueDropdowns() {
                 const categories = Object.keys(issueData);
-                categories.forEach(cat => {
-                    priCatSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
-                    secCatSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+                categories.forEach(function(cat) {
+                    priCatSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
+                    secCatSelect.innerHTML += '<option value="' + cat + '">' + cat + '</option>';
                 });
-                priCatSelect.addEventListener('change', () => populateDetails(priCatSelect, priDetSelect, priOtherInput));
-                secCatSelect.addEventListener('change', () => populateDetails(secCatSelect, secDetSelect, secOtherInput));
-                priDetSelect.addEventListener('change', () => toggleOtherInput(priDetSelect, priOtherInput));
-                secDetSelect.addEventListener('change', () => toggleOtherInput(secDetSelect, secOtherInput));
+                priCatSelect.addEventListener('change', function() { populateDetails(priCatSelect, priDetSelect, priOtherInput); });
+                secCatSelect.addEventListener('change', function() { populateDetails(secCatSelect, secDetSelect, secOtherInput); });
+                priDetSelect.addEventListener('change', function() { toggleOtherInput(priDetSelect, priOtherInput); });
+                secDetSelect.addEventListener('change', function() { toggleOtherInput(secDetSelect, secOtherInput); });
             }
 
             function populateDetails(categorySelect, detailSelect, otherInput) {
@@ -335,8 +338,8 @@
                 detailSelect.innerHTML = '<option value="">-- 請選擇細項 --</option>';
                 if (selectedCat && selectedCat !== '無') {
                     detailSelect.disabled = false;
-                    issueData[selectedCat].forEach(item => {
-                        detailSelect.innerHTML += `<option value="${item}">${item}</option>`;
+                    issueData[selectedCat].forEach(function(item) {
+                        detailSelect.innerHTML += '<option value="' + item + '">' + item + '</option>';
                     });
                 } else {
                     detailSelect.disabled = true;
@@ -347,7 +350,7 @@
             }
 
             function toggleOtherInput(detailSelect, otherInput) {
-                if (detailSelect.value && detailSelect.value.includes('其他')) {
+                if (detailSelect.value && detailSelect.value.indexOf('其他') !== -1) {
                     otherInput.style.display = 'block';
                     otherInput.required = true;
                 } else {
@@ -359,33 +362,42 @@
 
             initIssueDropdowns();
 
-            // =========== 動態切換邏輯 ===========
-            const menuItems = document.querySelectorAll('.menu-item');
-            menuItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    menuItems.forEach(mi => mi.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    currentContext = this.getAttribute('data-context');
+            function applyContextUI() {
+                try {
                     const config = contextConfig[currentContext];
-                    
-                    document.getElementById('table-title').textContent = `${config.label}個案 / 諮詢總表`;
-                    formTitle.textContent = `新增${config.label}記錄`;
+                    document.getElementById('table-title').textContent = config.label + '記錄總表';
                     document.getElementById('label-name').textContent = config.nameField;
                     document.getElementById('th-name').textContent = config.nameField;
-                    document.getElementById('label-student-id').textContent = config.idField;
-                    document.getElementById('th-student-id').textContent = config.idField;
                     document.getElementById('label-class').textContent = config.classField;
                     document.getElementById('th-class').textContent = config.classField;
-                    document.getElementById('th-stat-class').textContent = config.classField;
-                    document.getElementById('class-chart-title').textContent = `按${config.classField}統計`;
-                    document.getElementById('filter-class-label').textContent = `${config.classField}篩選：`;
-                    
+                    document.getElementById('class-chart-title').textContent = '按' + config.classField + '統計';
+                    document.getElementById('filter-class-label').textContent = config.classField + '篩選：';
                     document.getElementById('dob-group').style.display = config.showDOB ? 'flex' : 'none';
                     
                     const displayStyle = config.showStudentId ? '' : 'none';
-                    document.getElementById('group-student-id').style.display = displayStyle;
-                    document.querySelectorAll('.col-student-id').forEach(el => el.style.display = displayStyle);
+                    const groupSid = document.getElementById('group-student-id');
+                    if(groupSid) groupSid.style.display = displayStyle;
+                    const lblSid = document.getElementById('label-student-id');
+                    if(lblSid) lblSid.textContent = config.idField;
+                    const thSid = document.getElementById('th-student-id');
+                    if(thSid) thSid.textContent = config.idField;
+                    
+                    const studentIdCols = document.querySelectorAll('.col-student-id');
+                    for(let i=0; i<studentIdCols.length; i++){
+                        studentIdCols[i].style.display = displayStyle;
+                    }
+                } catch (e) { console.error("UI 切換錯誤", e); }
+            }
+
+            const menuItems = document.querySelectorAll('.menu-item');
+            for(let i=0; i<menuItems.length; i++) {
+                menuItems[i].addEventListener('click', function() {
+                    for(let j=0; j<menuItems.length; j++){
+                        menuItems[j].classList.remove('active');
+                    }
+                    this.classList.add('active');
+                    currentContext = this.getAttribute('data-context');
+                    applyContextUI();
 
                     classFilter.value = '';
                     caseworkerFilter.value = '';
@@ -394,35 +406,87 @@
                     dateStart.value = '';
                     dateEnd.value = '';
 
-                    resetForm();
+                    resetForm(); 
                     updateAll(); 
                 });
-            });
+            }
 
-            // =========== 日期篩選與匯出 Excel ===========
+            const STORAGE_KEY = 'schoolCaseworkDataV2'; 
+
+            function saveDataToStorage() {
+                const rows = document.getElementById('case-table-body').querySelectorAll('tr');
+                const dataToSave = [];
+                for(let i=0; i<rows.length; i++){
+                    const row = rows[i];
+                    dataToSave.push({
+                        caseId: row.dataset.caseId, type: row.dataset.type, dob: row.dataset.dob,
+                        priCat: row.dataset.priCat, priDet: row.dataset.priDet, priOther: row.dataset.priOther,
+                        secCat: row.dataset.secCat, secDet: row.dataset.secDet, secOther: row.dataset.secOther,
+                        col0: row.cells[0] ? row.cells[0].textContent : '', col1: row.cells[1] ? row.cells[1].textContent : '', 
+                        col2: row.cells[2] ? row.cells[2].textContent : '', col3: row.cells[3] ? row.cells[3].textContent : '', 
+                        col4: row.cells[4] ? row.cells[4].textContent : '', col5: row.cells[5] ? row.cells[5].textContent : '', 
+                        col6: row.cells[6] ? row.cells[6].textContent : '', col7: row.cells[7] ? row.cells[7].textContent : '', 
+                        col8: row.cells[8] ? row.cells[8].textContent : '', col9: row.cells[9] ? row.cells[9].textContent : '', 
+                        col10: row.cells[10] ? row.cells[10].textContent : '' 
+                    });
+                }
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+            }
+
+            function loadDataFromStorage() {
+                const savedDataStr = localStorage.getItem(STORAGE_KEY);
+                tableBody.innerHTML = ''; 
+
+                if (savedDataStr) {
+                    try {
+                        const savedData = JSON.parse(savedDataStr);
+                        savedData.forEach(function(data) {
+                            if(!data.col0) return;
+                            const row = document.createElement('tr');
+                            row.setAttribute('data-case-id', data.caseId); row.setAttribute('data-type', data.type || 'student'); row.setAttribute('data-dob', data.dob || '');
+                            row.setAttribute('data-pri-cat', data.priCat || ''); row.setAttribute('data-pri-det', data.priDet || ''); row.setAttribute('data-pri-other', data.priOther || '');
+                            row.setAttribute('data-sec-cat', data.secCat || ''); row.setAttribute('data-sec-det', data.secDet || ''); row.setAttribute('data-sec-other', data.secOther || '');
+
+                            row.innerHTML = 
+                                '<td>' + data.col0 + '</td><td class="col-student-id">' + data.col1 + '</td><td>' + data.col2 + '</td><td>' + data.col3 + '</td>' +
+                                '<td class="col-date">' + data.col4 + '</td><td>' + data.col5 + '</td><td>' + data.col6 + '</td><td>' + data.col7 + '</td>' +
+                                '<td>' + data.col8 + '</td><td>' + data.col9 + '</td><td title="' + data.col10 + '">' + data.col10 + '</td>' +
+                                '<td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>';
+                            tableBody.appendChild(row);
+                        });
+                    } catch (e) {
+                        createDummyData();
+                    }
+                } else {
+                    createDummyData();
+                }
+            }
+
+            function createDummyData() {
+                const dummyDataHTML = 
+                    '<tr data-case-id="1" data-type="student" data-dob="2014-05-10" data-pri-cat="學業" data-pri-det="LL3: 學習興趣/動機低弱" data-pri-other="" data-sec-cat="無" data-sec-det="" data-sec-other="">' +
+                        '<td>陳小明</td><td class="col-student-id">S24001</td><td>開檔案</td><td>CS-001</td><td class="col-date">2026-04-20</td><td>男</td><td>P.6A</td><td>楊姑娘</td><td>學業 - LL3: 學習興趣/動機低弱</td><td>無</td><td title="近期對功課缺乏興趣。">近期對功課缺乏興趣。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>' +
+                    '</tr>' +
+                    '<tr data-case-id="2" data-type="student" data-dob="2016-08-15" data-pri-cat="情緒/心理" data-pri-det="EE3: 情緒問題，例如：未能適當地調節情緒、情緒鬱悶、感覺得自己沒有價值" data-pri-other="" data-sec-cat="社交/發展" data-sec-det="SS1: 社交技巧不足" data-sec-other="">' +
+                        '<td>李靜兒</td><td class="col-student-id">S24055</td><td>諮詢</td><td>CS-002</td><td class="col-date">2026-04-22</td><td>女</td><td>P.4C</td><td>梁姑娘</td><td>情緒/心理 - EE3: 情緒問題...</td><td>社交/發展 - SS1: 社交技巧不足</td><td title="常在課堂哭泣，不敢與同學互動。">常在課堂哭泣，不敢與同學互動。</td><td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>' +
+                    '</tr>';
+                tableBody.innerHTML = dummyDataHTML;
+                saveDataToStorage(); 
+            }
+
             dateRangePreset.addEventListener('change', function() {
                 if (this.value === 'custom') {
                     customDateGroup.style.display = 'flex';
                 } else {
                     customDateGroup.style.display = 'none';
                     const today = new Date();
-                    let start = '';
-                    let end = today.toISOString().slice(0,10);
-                    
+                    let start = ''; let end = today.toISOString().slice(0,10);
                     if (this.value === 'last2months') {
-                        const twoMonthsAgo = new Date();
-                        twoMonthsAgo.setMonth(today.getMonth() - 2);
-                        start = twoMonthsAgo.toISOString().slice(0,10);
+                        const twoMonthsAgo = new Date(); twoMonthsAgo.setMonth(today.getMonth() - 2); start = twoMonthsAgo.toISOString().slice(0,10);
                     } else if (this.value === 'thisSchoolYear') {
-                        const currentMonth = today.getMonth(); 
-                        const startYear = currentMonth >= 8 ? today.getFullYear() : today.getFullYear() - 1;
-                        start = `${startYear}-09-01`;
-                    } else if (this.value === 'thisYear') {
-                        start = `${today.getFullYear()}-01-01`;
-                    }
-                    
-                    dateStart.value = start;
-                    dateEnd.value = end;
+                        const startYear = today.getMonth() >= 8 ? today.getFullYear() : today.getFullYear() - 1; start = startYear + '-09-01';
+                    } else if (this.value === 'thisYear') { start = today.getFullYear() + '-01-01'; }
+                    dateStart.value = start; dateEnd.value = end;
                 }
                 updateAll(); 
             });
@@ -431,37 +495,38 @@
             dateEnd.addEventListener('change', updateAll);
 
             const exportBtn = document.getElementById('export-excel-btn');
-            exportBtn.addEventListener('click', function() {
-                const originalTable = document.getElementById('main-data-table');
-                const clonedTable = originalTable.cloneNode(true);
-                
-                const rows = clonedTable.querySelectorAll('tr');
-                rows.forEach(row => {
-                    if (row.style.display === 'none') {
-                        row.parentNode.removeChild(row);
-                    } else {
-                        const cells = row.querySelectorAll('.no-export');
-                        cells.forEach(cell => cell.parentNode.removeChild(cell));
-                        if(currentContext !== 'student') {
-                            const studentIdCells = row.querySelectorAll('.col-student-id');
-                            studentIdCells.forEach(cell => cell.parentNode.removeChild(cell));
+            if(exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    const originalTable = document.getElementById('main-data-table');
+                    const clonedTable = originalTable.cloneNode(true);
+                    
+                    const rows = clonedTable.querySelectorAll('tr');
+                    for(let i=0; i<rows.length; i++) {
+                        const row = rows[i];
+                        if (row.style.display === 'none') {
+                            row.parentNode.removeChild(row);
+                        } else {
+                            const cells = row.querySelectorAll('.no-export');
+                            for(let j=0; j<cells.length; j++) { cells[j].parentNode.removeChild(cells[j]); }
+                            if(currentContext !== 'student') {
+                                const studentIdCells = row.querySelectorAll('.col-student-id');
+                                for(let j=0; j<studentIdCells.length; j++) { studentIdCells[j].parentNode.removeChild(studentIdCells[j]); }
+                            }
                         }
                     }
+
+                    const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "個案列表"});
+                    let reportType = "總表";
+                    if(dateRangePreset.value === 'last2months') reportType = "雙月報表";
+                    else if(dateRangePreset.value === 'thisSchoolYear') reportType = "本學年報表";
+                    else if(dateRangePreset.value === 'thisYear') reportType = "年度報表";
+                    else if(dateRangePreset.value === 'custom') reportType = dateStart.value + '至' + dateEnd.value;
+
+                    const todayStr = new Date().toISOString().slice(0,10);
+                    XLSX.writeFile(wb, contextConfig[currentContext].label + "記錄_" + reportType + "_" + todayStr + ".xlsx");
                 });
+            }
 
-                const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "個案列表"});
-                const contextName = contextConfig[currentContext].label;
-                let reportType = "總表";
-                if(dateRangePreset.value === 'last2months') reportType = "雙月報表";
-                else if(dateRangePreset.value === 'thisSchoolYear') reportType = "本學年報表";
-                else if(dateRangePreset.value === 'thisYear') reportType = "年度報表";
-                else if(dateRangePreset.value === 'custom') reportType = `${dateStart.value}至${dateEnd.value}`;
-
-                const todayStr = new Date().toISOString().slice(0,10);
-                XLSX.writeFile(wb, `${contextName}記錄_${reportType}_${todayStr}.xlsx`);
-            });
-
-            // --- 表單與表格邏輯 ---
             form.addEventListener('submit', handleFormSubmit);
             tableBody.addEventListener('click', handleTableClick);
             cancelBtn.addEventListener('click', resetForm);
@@ -473,17 +538,21 @@
                 if (priCatSelect.value && !priDetSelect.value) { alert('請選擇「主要問題」的細項！'); return; }
                 if (secCatSelect.value !== '無' && !secDetSelect.value) { alert('請選擇「次要問題」的細項！'); return; }
 
+                let finalCaseworker = document.getElementById('caseworker').value;
+                if(currentUser.role === 'caseworker') finalCaseworker = currentUser.name;
+
                 const caseId = caseIdInput.value;
                 if (caseId) {
-                    const rowToUpdate = tableBody.querySelector(`tr[data-case-id="${caseId}"]`);
-                    if (rowToUpdate) updateRowFromForm(rowToUpdate);
+                    const rowToUpdate = tableBody.querySelector('tr[data-case-id="' + caseId + '"]');
+                    if (rowToUpdate) updateRowFromForm(rowToUpdate, finalCaseworker);
                     alert("更新成功！");
                 } else {
-                    const newRow = createRowFromForm();
+                    const newRow = createRowFromForm(finalCaseworker);
                     tableBody.appendChild(newRow);
                     alert("新增成功！");
                 }
                 resetForm();
+                saveDataToStorage(); 
                 updateAll();
                 document.querySelector('.table-container').scrollIntoView({ behavior: 'smooth' });
             }
@@ -492,10 +561,10 @@
                 const target = event.target;
                 const row = target.closest('tr');
                 if (!row) return;
-                
                 if (target.classList.contains('delete-btn')) {
-                    if (confirm(`確定要刪除「${row.cells[0].textContent}」的資料嗎？`)) {
+                    if (confirm('確定要刪除「' + row.cells[0].textContent + '」的資料嗎？')) {
                         row.remove();
+                        saveDataToStorage(); 
                         updateAll();
                     }
                 }
@@ -505,81 +574,99 @@
             }
             
             function updateAll() {
-                applyFilters(); 
-                updateFilterOptions();
-                updateStatistics(); 
+                try { applyFilters(); } catch(e){}
+                try { applyContextUI(); } catch(e){}
+                try { enforcePermissions(); } catch(e){}
+                try { updateFilterOptions(); } catch(e){}
+                try { updateStatistics(); } catch(e){ console.error("圖表更新失敗", e); }
             }
 
             function updateStatistics() {
+                if (typeof Chart === 'undefined') return;
+
                 const rows = Array.from(tableBody.querySelectorAll('tr'));
                 const caseworkerCounts = {};
                 const classCounts = {};
                 const issueCounts = {}; 
 
-                rows.forEach(row => {
+                for(let i=0; i<rows.length; i++) {
+                    const row = rows[i];
                     if (row.style.display !== 'none') {
-                        // 在這個無記錄類別的表格中：日期(index 3), 班級(index 5), 同工(index 6), 問題(dataset)
-                        const dateStr = row.cells[3].textContent;
-                        const className = row.cells[5].textContent;     
-                        const caseworkerName = row.cells[6].textContent; 
-                        const primaryCat = row.dataset.priCat; 
+                        try {
+                            const dateStr = row.cells[4] ? row.cells[4].textContent : '';     
+                            const className = row.cells[6] ? row.cells[6].textContent : '';   
+                            const caseworkerName = row.cells[7] ? row.cells[7].textContent : ''; 
+                            const primaryCat = row.dataset.priCat; 
 
-                        let yearMonth = '未知月份';
-                        if (dateStr && dateStr.includes('-')) yearMonth = dateStr.substring(0, 7); 
+                            let yearMonth = '未知月份';
+                            if (dateStr && dateStr.indexOf('-') !== -1) {
+                                yearMonth = dateStr.substring(0, 7); 
+                            }
 
-                        if (caseworkerName) {
-                            const key = yearMonth ? `${caseworkerName} (${yearMonth})` : caseworkerName;
-                            caseworkerCounts[key] = (caseworkerCounts[key] || 0) + 1;
-                        }
-
-                        if (className) classCounts[className] = (classCounts[className] || 0) + 1;
-                        if (primaryCat && primaryCat !== '無' && primaryCat !== 'undefined') { 
-                            issueCounts[primaryCat] = (issueCounts[primaryCat] || 0) + 1;
-                        }
+                            if (caseworkerName) {
+                                const key = yearMonth ? caseworkerName + ' (' + yearMonth + ')' : caseworkerName;
+                                caseworkerCounts[key] = (caseworkerCounts[key] || 0) + 1;
+                            }
+                            if (className) classCounts[className] = (classCounts[className] || 0) + 1;
+                            if (primaryCat && primaryCat !== '無' && primaryCat !== 'undefined') { 
+                                issueCounts[primaryCat] = (issueCounts[primaryCat] || 0) + 1;
+                            }
+                        } catch(e) {}
                     }
-                });
-
-                const sortedMonths = Array.from(new Set(Object.keys(caseworkerCounts).map(k => k.split(' (')[1]?.replace(')','') || k))).sort();
-                const allCw = Array.from(new Set(Object.keys(caseworkerCounts).map(k => k.split(' (')[0])));
-                const colors = ['rgba(52, 152, 219, 0.8)', 'rgba(231, 76, 60, 0.8)', 'rgba(241, 196, 15, 0.8)', 'rgba(155, 89, 182, 0.8)'];
-
-                const datasets = allCw.map((cw, index) => {
-                    const dataPoints = sortedMonths.map(month => caseworkerCounts[`${cw} (${month})`] || 0);
-                    return { label: cw, data: dataPoints, backgroundColor: colors[index % colors.length], borderWidth: 1 };
-                });
-
-                const cwCtx = document.getElementById('caseworkerChart').getContext('2d');
-                if (caseworkerChartInstance) {
-                    caseworkerChartInstance.data.labels = sortedMonths;
-                    caseworkerChartInstance.data.datasets = datasets;
-                    caseworkerChartInstance.update();
-                } else {
-                    caseworkerChartInstance = new Chart(cwCtx, { type: 'bar', data: { labels: sortedMonths, datasets: datasets }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false } });
                 }
 
-                classChartInstance = drawOrUpdateSingleChart(classChartInstance, 'classChart', Object.keys(classCounts), Object.values(classCounts), 'rgba(46, 204, 113, 0.8)');
-                issueChartInstance = drawOrUpdateSingleChart(issueChartInstance, 'issueChart', Object.keys(issueCounts), Object.values(issueCounts), 'rgba(155, 89, 182, 0.8)');
-                
-                // 保留舊的表格賦值代碼，但是因為 CSS 隱藏了，所以不會顯示也不會出錯
-                document.getElementById('caseworker-stats-body').innerHTML = '';
-                document.getElementById('class-stats-body').innerHTML = '';
-                document.getElementById('issue-stats-body').innerHTML = '';
+                try {
+                    const unsortedKeys = [];
+                    for(let k in caseworkerCounts) unsortedKeys.push(k);
+                    
+                    const sortedMonthsObj = {};
+                    const allCwObj = {};
+                    
+                    unsortedKeys.forEach(function(k) {
+                        const parts = k.split(' (');
+                        if(parts.length > 1) {
+                            sortedMonthsObj[parts[1].replace(')','')] = true;
+                        } else {
+                            sortedMonthsObj[k] = true;
+                        }
+                        allCwObj[parts[0]] = true;
+                    });
+                    
+                    const sortedMonths = Object.keys(sortedMonthsObj).sort();
+                    const allCw = Object.keys(allCwObj);
+                    const colors = ['rgba(52, 152, 219, 0.8)', 'rgba(231, 76, 60, 0.8)', 'rgba(241, 196, 15, 0.8)', 'rgba(155, 89, 182, 0.8)'];
+
+                    const datasets = allCw.map(function(cw, index) {
+                        const dataPoints = sortedMonths.map(function(month) {
+                            return caseworkerCounts[cw + ' (' + month + ')'] || 0;
+                        });
+                        return { label: cw, data: dataPoints, backgroundColor: colors[index % colors.length], borderWidth: 1 };
+                    });
+                    
+                    caseworkerChartInstance = renderChart(caseworkerChartInstance, 'caseworkerChart', sortedMonths, datasets);
+
+                    const classLabels = Object.keys(classCounts);
+                    const classValues = classLabels.map(function(k){ return classCounts[k]; });
+                    const classDataSets = [{ label: '數量', data: classValues, backgroundColor: 'rgba(46, 204, 113, 0.8)', borderWidth: 1 }];
+                    classChartInstance = renderChart(classChartInstance, 'classChart', classLabels, classDataSets);
+
+                    const issueLabels = Object.keys(issueCounts);
+                    const issueValues = issueLabels.map(function(k){ return issueCounts[k]; });
+                    const issueDataSets = [{ label: '數量', data: issueValues, backgroundColor: 'rgba(155, 89, 182, 0.8)', borderWidth: 1 }];
+                    issueChartInstance = renderChart(issueChartInstance, 'issueChart', issueLabels, issueDataSets);
+                } catch(e) {}
             }
 
-            function drawOrUpdateSingleChart(instance, canvasId, labels, data, color) {
-                const ctx = document.getElementById(canvasId).getContext('2d');
-                if (instance) {
-                    instance.data.labels = labels;
-                    instance.data.datasets[0].data = data;
-                    instance.update();
-                } else {
-                    instance = new Chart(ctx, {
-                        type: 'bar',
-                        data: { labels: labels, datasets: [{ label: '數量', data: data, backgroundColor: color }] },
-                        options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false }
-                    });
-                }
-                return instance;
+            function renderChart(oldInstance, canvasId, labels, datasets) {
+                const canvas = document.getElementById(canvasId);
+                if (!canvas) return null;
+                if (oldInstance) { oldInstance.destroy(); }
+                const ctx = canvas.getContext('2d');
+                return new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: datasets },
+                    options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, responsive: true, maintainAspectRatio: false }
+                });
             }
 
             function applyFilters() {
@@ -588,52 +675,66 @@
                 const startDateVal = dateStart.value;
                 const endDateVal = dateEnd.value;
 
-                tableBody.querySelectorAll('tr').forEach(row => {
-                    const rowType = row.getAttribute('data-type');
-                    const classMatch = !classValue || row.cells[5].textContent === classValue;
-                    const caseworkerMatch = !caseworkerValue || row.cells[6].textContent === caseworkerValue;
-                    const typeMatch = rowType === currentContext;
-                    
-                    let dateMatch = true;
-                    if (dateRangePreset.value !== 'all') {
-                        const rowDate = row.cells[3].textContent; // 這裡的日期是第 4 欄 (index 3)
-                        if (rowDate) {
-                            if (startDateVal && rowDate < startDateVal) dateMatch = false;
-                            if (endDateVal && rowDate > endDateVal) dateMatch = false;
+                const rows = tableBody.querySelectorAll('tr');
+                for(let i=0; i<rows.length; i++){
+                    const row = rows[i];
+                    try {
+                        const rowType = row.getAttribute('data-type');
+                        const classMatch = !classValue || (row.cells[6] && row.cells[6].textContent === classValue);
+                        const caseworkerMatch = !caseworkerValue || (row.cells[7] && row.cells[7].textContent === caseworkerValue);
+                        const typeMatch = rowType === currentContext;
+                        
+                        let authMatch = true;
+                        if (currentUser.role === 'caseworker' && row.cells[7] && row.cells[7].textContent !== currentUser.name) {
+                            authMatch = false;
                         }
-                    }
-                    
-                    row.style.display = (classMatch && caseworkerMatch && typeMatch && dateMatch) ? '' : 'none';
-                });
+                        
+                        let dateMatch = true;
+                        if (dateRangePreset.value !== 'all') {
+                            const rowDate = row.cells[4] ? row.cells[4].textContent : '';
+                            if (rowDate) {
+                                if (startDateVal && rowDate < startDateVal) dateMatch = false;
+                                if (endDateVal && rowDate > endDateVal) dateMatch = false;
+                            }
+                        }
+                        row.style.display = (classMatch && caseworkerMatch && typeMatch && dateMatch && authMatch) ? '' : 'none';
+                    } catch(e) { row.style.display = 'none'; }
+                }
             }
 
             function updateFilterOptions() {
-                const classes = new Set(), caseworkers = new Set();
-                tableBody.querySelectorAll('tr').forEach(row => { 
+                const classesObj = {};
+                const caseworkersObj = {};
+                const rows = tableBody.querySelectorAll('tr');
+                for(let i=0; i<rows.length; i++) {
+                    const row = rows[i];
                     if(row.style.display !== 'none'){
-                        classes.add(row.cells[5].textContent); 
-                        caseworkers.add(row.cells[6].textContent); 
+                        try { 
+                            if(row.cells[6]) classesObj[row.cells[6].textContent] = true; 
+                            if(row.cells[7]) caseworkersObj[row.cells[7].textContent] = true; 
+                        } catch(e) {}
                     }
-                });
-                
-                const updateSelect = (selectEl, optionsSet, defaultText) => {
+                }
+                const updateSelect = (selectEl, optionsObj, defaultText) => {
                     const currentVal = selectEl.value;
-                    selectEl.innerHTML = `<option value="">${defaultText}</option>` + Array.from(optionsSet).filter(Boolean).map(o => `<option value="${o}">${o}</option>`).join('');
-                    if(Array.from(optionsSet).includes(currentVal)) selectEl.value = currentVal;
+                    let html = '<option value="">' + defaultText + '</option>';
+                    for(let k in optionsObj) { if(k) html += '<option value="' + k + '">' + k + '</option>'; }
+                    selectEl.innerHTML = html;
+                    selectEl.value = currentVal;
                 };
-                updateSelect(classFilter, classes, '-- 全部 --');
-                updateSelect(caseworkerFilter, caseworkers, '-- 所有同工 --');
+                updateSelect(classFilter, classesObj, '-- 全部 --');
+                if (currentUser.role === 'admin') { updateSelect(caseworkerFilter, caseworkersObj, '-- 所有同工 --'); }
             }
 
-            function createRowFromForm() {
+            function createRowFromForm(finalCaseworker) {
                 const row = document.createElement('tr');
                 row.setAttribute('data-case-id', Date.now());
                 row.setAttribute('data-type', currentContext); 
-                updateRowFromForm(row);
+                updateRowFromForm(row, finalCaseworker);
                 return row;
             }
             
-            function updateRowFromForm(row) {
+            function updateRowFromForm(row, finalCaseworker) {
                 row.setAttribute('data-dob', document.getElementById('dob').value);
                 row.setAttribute('data-pri-cat', priCatSelect.value);
                 row.setAttribute('data-pri-det', priDetSelect.value);
@@ -644,96 +745,85 @@
                 
                 const name = document.getElementById('student-name').value;
                 const studentId = currentContext === 'student' ? document.getElementById('student-id').value : ''; 
+                const recordType = document.getElementById('record-type').value; 
                 const fileNum = document.getElementById('file-number').value;
                 const date = document.getElementById('open-date').value;
                 const gender = document.getElementById('gender').options[document.getElementById('gender').selectedIndex].text;
                 const currentClass = document.getElementById('class-current').value;
-                const caseworker = document.getElementById('caseworker').value;
                 
                 let priString = priCatSelect.value;
                 if (priDetSelect.value) {
                     let shortDet = priDetSelect.value.split(':')[0]; 
                     if(shortDet === priDetSelect.value) shortDet = priDetSelect.value.split('，')[0]; 
-                    priString += ` - ${shortDet}`;
-                    if (priOtherInput.value) priString += ` (${priOtherInput.value})`; 
+                    priString += ' - ' + shortDet;
+                    if (priOtherInput.value) priString += ' (' + priOtherInput.value + ')'; 
                 }
 
                 let secString = secCatSelect.value;
                 if (secCatSelect.value !== '無' && secDetSelect.value) {
                     let shortDet = secDetSelect.value.split(':')[0];
                     if(shortDet === secDetSelect.value) shortDet = secDetSelect.value.split('，')[0];
-                    secString += ` - ${shortDet}`;
-                    if (secOtherInput.value) secString += ` (${secOtherInput.value})`;
+                    secString += ' - ' + shortDet;
+                    if (secOtherInput.value) secString += ' (' + secOtherInput.value + ')';
                 }
 
                 const content = document.getElementById('consultation-content').value;
 
-                row.innerHTML = `
-                    <td>${name}</td>
-                    <td class="col-student-id">${studentId}</td>
-                    <td>${fileNum}</td>
-                    <td class="col-date">${date}</td> 
-                    <td>${gender}</td>
-                    <td>${currentClass}</td>
-                    <td>${caseworker}</td>
-                    <td>${priString}</td>
-                    <td>${secString}</td>
-                    <td title="${content}">${content}</td>
-                    <td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>
-                `;
+                row.innerHTML = 
+                    '<td>' + name + '</td><td class="col-student-id">' + studentId + '</td><td>' + recordType + '</td><td>' + fileNum + '</td>' +
+                    '<td class="col-date">' + date + '</td><td>' + gender + '</td><td>' + currentClass + '</td><td>' + finalCaseworker + '</td>' +
+                    '<td>' + priString + '</td><td>' + secString + '</td><td title="' + content + '">' + content + '</td>' +
+                    '<td class="no-export"><button class="button edit-btn">編輯</button><button class="button delete-btn">刪除</button></td>';
                 
-                const displayStyle = currentContext === 'student' ? '' : 'none';
-                row.querySelector('.col-student-id').style.display = displayStyle;
+                if(row.querySelector('.col-student-id')){
+                    row.querySelector('.col-student-id').style.display = currentContext === 'student' ? '' : 'none';
+                }
             }
 
             function switchToEditMode(row) {
+                if(currentUser.role === 'caseworker' && row.cells[7] && row.cells[7].textContent !== currentUser.name) {
+                    alert("您沒有權限編輯其他同工的紀錄！"); return;
+                }
                 caseIdInput.value = row.dataset.caseId;
-                
-                document.getElementById('student-name').value = row.cells[0].textContent;
-                document.getElementById('student-id').value = row.cells[1].textContent; 
-                document.getElementById('file-number').value = row.cells[2].textContent;
-                document.getElementById('open-date').value = row.cells[3].textContent;
-                document.getElementById('gender').value = (row.cells[4].textContent === '男') ? 'male' : 'female';
-                document.getElementById('class-current').value = row.cells[5].textContent;
-                document.getElementById('dob').value = row.dataset.dob;
-                document.getElementById('caseworker').value = row.cells[6].textContent;
-                document.getElementById('consultation-content').value = row.cells[9].textContent;
+                try {
+                    document.getElementById('student-name').value = row.cells[0] ? row.cells[0].textContent : '';
+                    document.getElementById('student-id').value = row.cells[1] ? row.cells[1].textContent : ''; 
+                    document.getElementById('record-type').value = row.cells[2] ? row.cells[2].textContent : ''; 
+                    document.getElementById('file-number').value = row.cells[3] ? row.cells[3].textContent : '';
+                    document.getElementById('open-date').value = row.cells[4] ? row.cells[4].textContent : '';
+                    document.getElementById('gender').value = (row.cells[5] && row.cells[5].textContent === '男') ? 'male' : 'female';
+                    document.getElementById('class-current').value = row.cells[6] ? row.cells[6].textContent : '';
+                    document.getElementById('dob').value = row.dataset.dob || '';
+                    if(currentUser.role === 'admin') { document.getElementById('caseworker').value = row.cells[7] ? row.cells[7].textContent : ''; }
+                    document.getElementById('consultation-content').value = row.cells[10] ? row.cells[10].textContent : '';
+                } catch(e) {}
                 
                 priCatSelect.value = row.dataset.priCat || '';
                 populateDetails(priCatSelect, priDetSelect, priOtherInput);
-                priDetSelect.value = row.dataset.priDet || '';
-                priOtherInput.value = row.dataset.priOther || '';
+                priDetSelect.value = row.dataset.priDet || ''; priOtherInput.value = row.dataset.priOther || '';
                 toggleOtherInput(priDetSelect, priOtherInput);
 
                 secCatSelect.value = row.dataset.secCat || '無';
                 populateDetails(secCatSelect, secDetSelect, secOtherInput);
-                secDetSelect.value = row.dataset.secDet || '';
-                secOtherInput.value = row.dataset.secOther || '';
+                secDetSelect.value = row.dataset.secDet || ''; secOtherInput.value = row.dataset.secOther || '';
                 toggleOtherInput(secDetSelect, secOtherInput); 
 
-                const config = contextConfig[currentContext];
-                formTitle.textContent = `正在編輯：${row.cells[0].textContent}`;
-                submitBtn.textContent = '更新資料';
-                cancelBtn.style.display = 'inline-block';
-                
+                formTitle.textContent = '正在編輯：' + (row.cells[0] ? row.cells[0].textContent : '');
+                submitBtn.textContent = '更新資料'; cancelBtn.style.display = 'inline-block';
                 document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
             }
             
             function resetForm() {
-                form.reset();
-                caseIdInput.value = '';
-                
+                form.reset(); caseIdInput.value = '';
+                document.getElementById('record-type').value = '諮詢'; 
                 populateDetails(priCatSelect, priDetSelect, priOtherInput);
                 populateDetails(secCatSelect, secDetSelect, secOtherInput);
-
-                const config = contextConfig[currentContext];
-                formTitle.textContent = `新增${config.label}記錄`;
-                submitBtn.textContent = '提交資料';
-                cancelBtn.style.display = 'none';
+                formTitle.textContent = '新增' + contextConfig[currentContext].label + '記錄';
+                submitBtn.textContent = '提交資料'; cancelBtn.style.display = 'none';
+                enforcePermissions();
             }
             
-            // --- 頁面首次載入時初始化 ---
-            updateAll();
+            loadDataFromStorage(); enforcePermissions(); applyContextUI(); updateAll(); 
         });
     </script>
 </body>
