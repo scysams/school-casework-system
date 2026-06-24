@@ -234,15 +234,21 @@
         // =========================================================================
         // 💡💡💡【請在這裡貼上您的 Supabase URL 和 Key】💡💡💡
         // =========================================================================
-        const SUPABASE_URL = 'https://rlijmzjzimomrhjjzfwo.supabase.co/rest/v1/'; // 👈 貼在這裡
-        const SUPABASE_ANON_KEY = 'sb_publishable_G-B3LjpunUDH0bNpJyj2Aw_NSRq4mWX'; // 👈 貼在這裡
+        const SUPABASE_URL = 'https://your-project-id.supabase.co'; // 👈 請填入您的 Project URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpX...'; // 👈 請填入您的 Anon Key
         // =========================================================================
 
         let db = null;
-        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && window.supabase) {
-            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        }
-
+        try {
+            // 🏆 修正後的安全初始化語法：提取新版 v2 的 createClient 函數
+            if (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && window.supabase) {
+                const { createClient } = window.supabase; 
+                db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); 
+                console.log("Supabase 連線成功！");
+            }
+        } catch (err) {
+                console.error("Supabase 連線失敗：", err);
+            }
         document.addEventListener('DOMContentLoaded', function() {
             
             if (!db) {
